@@ -6,5 +6,7 @@ project(guitar)
 pico_sdk_init()
 
 add_executable(main src/main.cpp)
-target_link_libraries(main pico_stdlib)
+target_link_libraries(main pico_stdlib hardware_adc)
 pico_add_extra_outputs(main)
+
+pico_enable_stdio_usb(main 1)
