@@ -8,10 +8,11 @@ As part of the course Embedded Systems (WS23/24) we are building a cableless gui
 
 ## Hardware requirements
 
-- 2x Raspberry Pi Pico ([Reichelt](https://www.reichelt.de/raspberry-pi-pico-rp2040-cortex-m0-microusb-rasp-pi-pico-p295706.html))
+- 4x Raspberry Pi Pico ([Reichelt](https://www.reichelt.de/raspberry-pi-pico-rp2040-cortex-m0-microusb-rasp-pi-pico-p295706.html))
 - 2x NRF24L01 ([AZ-Delivery](https://www.az-delivery.de/en/products/3x-nrf24l01-mit-2-4-ghz), [Makershop](https://www.makershop.de/module/funk/nrf24l01-pa-lna-sma-antenne/))
 - 2x 6,35mm Jackplug male mono ([Maltronic](https://maltronic.de/detail/index/sArticle/35598))
 - 1x Digital-to-Analog Converter ([Reichelt](https://www.reichelt.de/de/de/entwicklerboards-dac-konverter-mcp4725-debo-dac-mcp4725-p334976.html))
+2x Raspberry Pi Debug Probe 
 - 2x Batterycase
 - Cables
 - PCB
