@@ -38,11 +38,21 @@ brew install --cask gcc-arm-embedded
 brew install picotool 
 ```
 
-Build:
+Clean:
 
 ```bash
 rm -rf build
-cmake -B build -S .
+```
+
+Build:
+
+```bash
+cmake -B build -G "Unix Makefiles" -S .
 make -C build
+```
+
+Flash:
+
+```bash
 picotool load build/main.uf2
 ```
