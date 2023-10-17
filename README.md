@@ -38,28 +38,21 @@ brew install --cask gcc-arm-embedded
 brew install picotool 
 ```
 
-Build:
+Clean:
 
 ```bash
 rm -rf build
-cmake -B build -S .
-make -C build
-picotool load build/main.uf2
-```
-
-### Windows
-
-Tools:
-
-```powershell
-winget install -e --id Kitware.CMake
-winget install -e --id Arm.GnuArmEmbeddedToolchain
 ```
 
 Build:
 
-```powershell
-rm -rf build
-cmake -B build -S .
+```bash
+cmake -B build -G "Unix Makefiles" -S .
 make -C build
+```
+
+Flash:
+
+```bash
+picotool load build/main.uf2
 ```
