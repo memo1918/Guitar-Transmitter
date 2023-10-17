@@ -46,3 +46,20 @@ cmake -B build -S .
 make -C build
 picotool load build/main.uf2
 ```
+
+### Windows
+
+Tools:
+
+```powershell
+winget install -e --id Kitware.CMake
+winget install -e --id Arm.GnuArmEmbeddedToolchain
+```
+
+Build:
+
+```powershell
+rm -rf build
+cmake -B build -S .
+make -C build
+```
