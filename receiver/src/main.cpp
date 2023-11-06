@@ -28,7 +28,7 @@ int main()
 			sleep_ms(500);
 		}
 	}
-	radio.setPALevel(RF24_PA_LOW);
+	radio.setPALevel(RF24_PA_HIGH);
 	radio.setPayloadSize(sizeof(payload));
 	uint64_t address = 0x314e6f646520;
 	// set the TX address of the RX node into the TX pipe
@@ -37,7 +37,7 @@ int main()
 	// set the RX address of the TX node into a RX pipe
 	radio.openReadingPipe(1, address); // using pipe 1
 	radio.startListening();
-	radio.setDataRate(RF24_250KBPS);
+	radio.setDataRate(RF24_2MBPS);
 
 	printf("nrf25l01 setup completed\n");
 	radio.printDetails();

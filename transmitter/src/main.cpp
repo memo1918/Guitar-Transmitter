@@ -28,9 +28,10 @@ int main()
 			sleep_ms(500);
 		}
 	}
-	radio.setPALevel(RF24_PA_LOW);
+
+	radio.setPALevel(RF24_PA_HIGH);
 	radio.setPayloadSize(sizeof(payload));
-	radio.setDataRate(RF24_250KBPS);
+	radio.setDataRate(RF24_2MBPS);
 
 	uint64_t address = 0x314e6f646520;
 	// set the TX address of the RX node into the TX pipe
@@ -57,14 +58,15 @@ int main()
 		{
 			// payload was delivered; print the payload sent & the timer result
 			printf("Transmission successful! Time to transmit = %llu us. Sent: %f\n", end_timer - start_timer, payload);
-
-			// increment float payload
-			payload += 0.01;
 		}
 		else
 		{
 			// payload was not delivered
 			printf("Transmission failed or timed out\n");
 		}
+
+		// increment float payload
+		payload += 0.01;
+		sleep_ms(200);
 	}
 }
