@@ -6,14 +6,22 @@
 #include <pico/stdlib.h>
 #include <RF24.h>
 
+#include "signal_acq.h"
+
 RF24 radio(CE_PIN, CSN_PIN, 1000000);
 SPI spi;
 
 float payload = 0.0;
 
+queue_t queue;
+
 int main()
 {
 	stdio_init_all();
+	
+	queue_init(&queue, 1, 1024);
+	sig_acq_init(&queue);
+
 	sleep_ms(10000);
 	printf("Guitar-Transmitter - Transmitter");
 
