@@ -5,13 +5,35 @@
 #include <stdio.h>
 #include <pico/stdlib.h>
 #include <RF24.h>
+#include <pico.h>
+#include <pico/util/queue.h>
+#include <hardware/sync.h>
+#include <pico/lock_core.h>
+#include "transmitter/Transmitter.h"
 
 #include "signal_acquisition/signal_acq.h"
 
 RF24 radio(CE_PIN, CSN_PIN, 1000000);
 SPI spi;
+queue_t queue;
+Transmitter transmitter(queue, radio);
 
-float payload = 0.0;
+void rf24Setup()
+{
+	radio.setPALevel(RF24_PA_HIGH);
+	radio.setPayloadSize(sizeof(uint8_t));
+	radio.setDataRate(RF24_2MBPS);
+
+	uint64_t address = 0x314e6f646520;
+	// set the TX address of the RX node into the TX pipe
+	radio.openWritingPipe(address); // always uses pipe 0
+	// set the RX address of the TX node into a RX pipe
+	radio.openReadingPipe(1, address); // using pipe 1
+	radio.stopListening();			   // Trasmit only
+
+	radio.printPrettyDetails();
+	printf("[ INFO ] nrf25l01 setup completed\n");
+}
 
 queue_t queue;
 
@@ -25,8 +47,9 @@ int main()
 	sleep_ms(10000);
 	printf("Guitar-Transmitter - Transmitter");
 
-	spi.begin(spi0, 18, 19, 16);
+	queue_init(&queue, sizeof(uint8_t), 1);
 
+	spi.begin(spi0, 18, 19, 16);
 	if (!radio.begin(&spi))
 	{
 		printf("[ ERROR ] the nrf24l01 is not responding\n");
@@ -36,45 +59,18 @@ int main()
 			sleep_ms(500);
 		}
 	}
-
-	radio.setPALevel(RF24_PA_HIGH);
-	radio.setPayloadSize(sizeof(payload));
-	radio.setDataRate(RF24_2MBPS);
-
-	uint64_t address = 0x314e6f646520;
-	// set the TX address of the RX node into the TX pipe
-	radio.openWritingPipe(address); // always uses pipe 0
-	// radio.setAutoAck(false);
-
-	// set the RX address of the TX node into a RX pipe
-	radio.openReadingPipe(1, address); // using pipe 1
-	radio.stopListening();
-
-	radio.printDetails();
-	radio.printPrettyDetails();
-
-	printf("nrf25l01 setup completed\n");
-	sleep_ms(10000);
+	rf24Setup();
 
 	while (true)
 	{
-		uint64_t start_timer = to_us_since_boot(get_absolute_time()); // start the timer
-		bool report = radio.write(&payload, sizeof(payload));		  // transmit & save the report
-		uint64_t end_timer = to_us_since_boot(get_absolute_time());	  // end the timer
-
-		if (report)
+		uint8_t payload = 14;
+		bool success = queue_try_add(&queue, &payload);
+		if (!success)
 		{
-			// payload was delivered; print the payload sent & the timer result
-			printf("Transmission successful! Time to transmit = %llu us. Sent: %f\n", end_timer - start_timer, payload);
-		}
-		else
-		{
-			// payload was not delivered
-			printf("Transmission failed or timed out\n");
+			printf("could not add to queue!\n");
 		}
 
-		// increment float payload
-		payload += 0.01;
+		transmitter.run();
 		sleep_ms(200);
 	}
 }

@@ -9,7 +9,7 @@
 RF24 radio(CE_PIN, CSN_PIN, 1000000);
 SPI spi;
 
-float payload = 0.0;
+uint8_t payload = 0;
 
 int main()
 {
@@ -52,7 +52,7 @@ int main()
 			radio.read(&payload, bytes);			// fetch payload from FIFO
 
 			// print the size of the payload, the pipe number, payload's value
-			printf("Received %d bytes on pipe %d: %f\n", bytes, pipe, payload);
+			printf("Received %d bytes on pipe %d: %d\n", bytes, pipe, payload);
 		}
 	}
 }

@@ -2,6 +2,7 @@ add_executable(
 	transmitter
 	src/main.cpp
 	src/signal_acquisition/signal_acq.cpp
+	src/transmitter/transmitter.cpp
 )
 target_link_libraries(
 	transmitter
@@ -11,6 +12,7 @@ target_link_libraries(
 	hardware_spi
 	hardware_sync
 	hardware_gpio
+	hardware_sync
 	RF24
 )
 
