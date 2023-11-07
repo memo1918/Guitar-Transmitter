@@ -4,6 +4,8 @@ target_link_libraries(
 	pico_stdlib
 	hardware_spi
 	hardware_gpio
+	freertos_kernel
+	freertos_config
 	RF24
 )
 pico_add_extra_outputs(transmitter)

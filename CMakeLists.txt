@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
+include(FetchContent)
 include(pico-sdk/pico_sdk_init.cmake)
 
 project(guitar)
