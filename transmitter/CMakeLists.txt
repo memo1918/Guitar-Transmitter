@@ -14,6 +14,7 @@ target_link_libraries(
 	hardware_gpio
 	hardware_sync
 	RF24
+	AudioPayload
 )
 
 pico_add_extra_outputs(transmitter)

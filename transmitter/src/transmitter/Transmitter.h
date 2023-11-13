@@ -15,7 +15,7 @@ public:
 	Transmitter(queue_t &queue, RF24 &radio, uint8_t size);
 	~Transmitter();
 
-	void run();
+	void readAndSend();
 	uint8_t getPayloadSize();
 };
 

@@ -2,7 +2,7 @@
 
 static uint8_t dma_channel;
 
-#define CAPTURE_BUFFER_SIZE 128
+#define CAPTURE_BUFFER_SIZE 32
 static uint8_t capture_buffer[CAPTURE_BUFFER_SIZE];
 
 static queue_t *queue;
@@ -12,24 +12,36 @@ void dma_handler()
     // Clear the interrupt request.
     dma_hw->ints0 = 1u << dma_channel;
 
-    for (int i = 0; i < CAPTURE_BUFFER_SIZE; i++)
+    bool success = queue_try_add(queue, &capture_buffer);
+    if (!success)
     {
-        queue_try_add(queue, &capture_buffer[i]);
+        printf("[ ERROR ] the dma could not add bytes to the queue, be sure to read from the queue.\n");
     }
 
     dma_channel_set_write_addr(dma_channel, capture_buffer, true);
 }
 
-void sig_acq_init(queue_t *q)
+/**
+ * @brief Inits the adc and reads values from it. The queue has to be
+ * configured with the correct payload size in order to work correctly. The
+ * payload size wichi the adc adds to the queue is 32bytes. Where each byte
+ * represents is a singel value. The lowest byte is also the oldest.
+ *
+ * @param q The queue where the values will be added. If the queue is full, the
+ * values will be thrown away, without furter notice
+ * @param frequency The frequency at wich the adc reads. The highest possible
+ * frequency is 500.000Hz
+ */
+void sig_acq_init(queue_t *q, float frequency)
 {
     queue = q;
 
     printf("Initializing the ADC ...\n");
 
-    adc_init();          // turn the adc on and wait for ready state
-    adc_set_clkdiv(0);   // select fastes divider for sample rate
-    adc_gpio_init(26);   // enable the gpio 26 pin for adc voltage measurement
-    adc_select_input(0); // select ADC0
+    adc_init();                                               // turn the adc on and wait for ready state
+    adc_set_clkdiv(SIGNAL_ACQUISITON_CLOCKSPEED / frequency); // select fastes divider for sample rate
+    adc_gpio_init(26);                                        // enable the gpio 26 pin for adc voltage measurement
+    adc_select_input(0);                                      // select ADC0
 
     adc_fifo_setup( // enable the fifo setup for working with the dma
         true,       // enable the fifo setup
