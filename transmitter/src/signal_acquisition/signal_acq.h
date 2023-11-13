@@ -4,8 +4,7 @@
 #include <stdio.h>
 #include <hardware/adc.h>
 #include <hardware/dma.h>
-#include "pico/util/queue.h"
-#include <stdint-gcc.h>
+#include <pico/util/queue.h>
 
 void sig_acq_init(queue_t *q);
 
