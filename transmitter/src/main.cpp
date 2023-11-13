@@ -35,8 +35,6 @@ void rf24Setup()
 	printf("[ INFO ] nrf25l01 setup completed\n");
 }
 
-queue_t queue;
-
 int main()
 {
 	stdio_init_all();
