@@ -1,6 +1,6 @@
 #include "transmitter.h"
 
-Transmitter::Transmitter(queue_t &queue, RF24 &radio) : _queue(queue), _radio(radio)
+Transmitter::Transmitter(queue_t &queue, RF24 &radio, uint8_t size) : _queue(queue), _radio(radio), _size(size)
 {
 }
 
@@ -16,16 +16,16 @@ Transmitter::~Transmitter()
 void Transmitter::run()
 {
 	// TODO: use variable payload
-	uint8_t payload;
-	bool success = queue_try_remove(&this->_queue, &payload);
+	void *payload;
+	bool success = queue_try_remove(&this->_queue, payload);
 	if (!success)
 	{
 		return;
 	}
 
-	uint64_t start_timer = to_us_since_boot(get_absolute_time()); // start the timer
-	bool report = this->_radio.write(&payload, sizeof(payload));  // transmit & save the report
-	uint64_t end_timer = to_us_since_boot(get_absolute_time());	  // end the timer
+	uint64_t start_timer = to_us_since_boot(get_absolute_time());	   // start the timer
+	bool report = this->_radio.write(payload, this->getPayloadSize()); // transmit & save the report
+	uint64_t end_timer = to_us_since_boot(get_absolute_time());		   // end the timer
 
 	// TODO: handle report
 	if (report)
@@ -38,4 +38,9 @@ void Transmitter::run()
 		// payload was not delivered
 		printf("Transmission failed or timed out\n");
 	}
+}
+
+uint8_t Transmitter::getPayloadSize()
+{
+	return this->_size;
 }

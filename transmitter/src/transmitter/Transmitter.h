@@ -9,12 +9,14 @@ class Transmitter
 private:
 	queue_t &_queue;
 	RF24 &_radio;
+	uint8_t _size;
 
 public:
-	Transmitter(queue_t &queue, RF24 &radio);
+	Transmitter(queue_t &queue, RF24 &radio, uint8_t size);
 	~Transmitter();
 
 	void run();
+	uint8_t getPayloadSize();
 };
 
 #endif // __TRANSMITTER_H__

@@ -16,12 +16,12 @@
 RF24 radio(CE_PIN, CSN_PIN, 1000000);
 SPI spi;
 queue_t queue;
-Transmitter transmitter(queue, radio);
+Transmitter transmitter(queue, radio, sizeof(uint8_t));
 
 void rf24Setup()
 {
 	radio.setPALevel(RF24_PA_HIGH);
-	radio.setPayloadSize(sizeof(uint8_t));
+	radio.setPayloadSize(transmitter.getPayloadSize());
 	radio.setDataRate(RF24_2MBPS);
 
 	uint64_t address = 0x314e6f646520;
@@ -38,14 +38,11 @@ void rf24Setup()
 int main()
 {
 	stdio_init_all();
-
-	queue_init(&queue, 1, 1024);
+	queue_init(&queue, transmitter.getPayloadSize(), 8);
 	sig_acq_init(&queue);
 
 	sleep_ms(10000);
 	printf("Guitar-Transmitter - Transmitter");
-
-	queue_init(&queue, sizeof(uint8_t), 1);
 
 	spi.begin(spi0, 18, 19, 16);
 	if (!radio.begin(&spi))
