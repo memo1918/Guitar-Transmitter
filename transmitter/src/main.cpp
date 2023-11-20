@@ -2,6 +2,7 @@
 #define CSN_PIN 8
 #define IRQ_PIN 6
 #define AUDIO_FREQUENCY 44'100 // 44,1 kHz
+#define TRANSMIT_LED_PIN 20
 
 #include <stdio.h>
 #include <pico/stdlib.h>
@@ -18,7 +19,7 @@
 RF24 radio(CE_PIN, CSN_PIN, 1000000);
 SPI spi;
 queue_t queue;
-Transmitter transmitter(queue, radio, sizeof(AudioPayload));
+Transmitter transmitter(queue, radio, sizeof(AudioPayload), TRANSMIT_LED_PIN);
 
 void rf24Setup()
 {

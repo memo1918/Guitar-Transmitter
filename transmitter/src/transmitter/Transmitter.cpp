@@ -1,7 +1,9 @@
 #include "transmitter.h"
 
-Transmitter::Transmitter(queue_t &queue, RF24 &radio, uint8_t size) : _queue(queue), _radio(radio), _size(size)
+Transmitter::Transmitter(queue_t &queue, RF24 &radio, uint8_t size, uint8_t led) : _queue(queue), _radio(radio), _size(size), _led(led)
 {
+	gpio_init(this->_led);
+	gpio_set_dir(this->_led, GPIO_OUT);
 }
 
 Transmitter::~Transmitter()
@@ -15,29 +17,16 @@ Transmitter::~Transmitter()
  */
 void Transmitter::readAndSend()
 {
+	gpio_put(this->_led, true);
 	uint8_t payload[this->getPayloadSize()];
 	bool success = queue_try_remove(&this->_queue, &payload);
 	if (!success)
 	{
 		return;
 	}
-
-	uint64_t start_timer = to_us_since_boot(get_absolute_time()); // start the timer
-	// bool report = this->_radio.write(payload, this->getPayloadSize()); // transmit & save the report)
-	bool report = this->_radio.writeFast(payload, this->getPayloadSize());
-	uint64_t end_timer = to_us_since_boot(get_absolute_time()); // end the timer
-
-	// TODO: handle report
-	if (report)
-	{
-		// payload was delivered; print the payload sent & the timer result
-		// printf("Transmission successful! Time to transmit = %llu us. Sent: %f\n", end_timer - start_timer, payload);
-	}
-	else
-	{
-		// payload was not delivered
-		// printf("Transmission failed or timed out\n");
-	}
+	// ignore return type (success), cause it will be always true, because auto-ack is disabled
+	this->_radio.writeFast(payload, this->getPayloadSize());
+	gpio_put(this->_led, false);
 }
 
 uint8_t Transmitter::getPayloadSize()
