@@ -2,22 +2,26 @@
 #define CSN_PIN 8
 #define IRQ_PIN 6
 #define RECEIVE_LED_PIN 20
+#define AUDIO_DIN_PIN 21
+#define AUDIO_BCLK_PIN 22
 
 #include <stdio.h>
 #include <pico/stdlib.h>
-#include <pico/util/queue.h>
+// #include <pico/util/queue.h>
 #include <AudioPayload.h>
-#include <RF24.h>
-#include "receiver/Receiver.h"
+// #include <RF24.h>
+// #include "receiver/Receiver.h"
+#include "player/Player.h"
 
-RF24 radio(CE_PIN, CSN_PIN, 1000000);
-SPI spi;
-queue_t queue;
-Receiver receiver(queue, radio, sizeof(AudioPayload), RECEIVE_LED_PIN);
+// RF24 radio(CE_PIN, CSN_PIN, 1000000);
+// SPI spi;
+// queue_t queue;
+/// Receiver receiver(queue, radio, sizeof(AudioPayload), RECEIVE_LED_PIN);
+Player player;
 
 uint8_t payload = 0;
 
-void rf24Setup()
+/* void rf24Setup()
 {
 	radio.setPALevel(RF24_PA_HIGH);
 	radio.setPayloadSize(receiver.getPayloadSize());
@@ -32,16 +36,18 @@ void rf24Setup()
 
 	radio.printPrettyDetails();
 	printf("[ INFO ] nrf25l01 setup completed\n");
-}
+}*/
 
 int main()
 {
 	stdio_init_all();
-	queue_init(&queue, receiver.getPayloadSize(), 1024);
+	// queue_init(&queue, receiver.getPayloadSize(), 1024);
 
 	printf("[ BOOT ] Guitar-Transmitter - Receiver");
 
-	spi.begin(spi0, 18, 19, 16);
+	player.begin();
+
+	/* spi.begin(spi0, 18, 19, 16);
 	if (!radio.begin(&spi))
 	{
 		printf("[ ERROR ] the nrf24l01 is not responding\n");
@@ -55,8 +61,9 @@ int main()
 
 	while (true)
 	{
+		// player.play();
 		receiver.receiveAndEnqueue();
 		AudioPayload payload;
 		queue_remove_blocking(&queue, &payload);
-	}
+	}*/
 }
