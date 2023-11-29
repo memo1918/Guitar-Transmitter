@@ -9,22 +9,14 @@ Player::~Player()
 {
 }
 
-#define SINE_WAVE_TABLE_LEN 24
-#define SAMPLES_PER_BUFFER 256
-
-static int16_t sine_wave_table[SINE_WAVE_TABLE_LEN];
+#define SAMPLES_PER_BUFFER 32
 
 void Player::begin()
 {
 	bi_decl(bi_3pins_with_names(PICO_AUDIO_I2S_DATA_PIN, "I2S DIN", PICO_AUDIO_I2S_CLOCK_PIN_BASE, "I2S BCK", PICO_AUDIO_I2S_CLOCK_PIN_BASE + 1, "I2S LRCK"));
 
-	for (int i = 0; i < SINE_WAVE_TABLE_LEN; i++)
-	{
-		sine_wave_table[i] = 32767 * cosf(i * 2 * (float)(M_PI / SINE_WAVE_TABLE_LEN));
-	}
-
 	static audio_format_t format = {
-		.sample_freq = 24000,
+		.sample_freq = 44100,
 		.format = AUDIO_BUFFER_FORMAT_PCM_S16,
 		.channel_count = 1,
 	};
@@ -35,7 +27,7 @@ void Player::begin()
 	};
 
 	// TODO: correct size
-	audio_buffer_pool_t *pool = audio_new_producer_pool(&producer_format, 3, SAMPLES_PER_BUFFER);
+	this->_pool = audio_new_producer_pool(&producer_format, 10, SAMPLES_PER_BUFFER);
 
 	audio_i2s_config_t config = {
 		.data_pin = PICO_AUDIO_I2S_DATA_PIN,
@@ -50,30 +42,19 @@ void Player::begin()
 		panic("[ ERROR ] Player: Unable to open audio device.\n");
 	}
 
-	bool connected = audio_i2s_connect(pool);
+	bool connected = audio_i2s_connect(this->_pool);
 	assert(connected);
 	audio_i2s_set_enabled(true);
+}
 
-	// Test - cause of nullptr
-	uint32_t pos = 0;
-	// uint32_t step = 0x100000;
-	// uint32_t pos_max = 0x10000 * SINE_WAVE_TABLE_LEN;
-	uint32_t pos_max = SINE_WAVE_TABLE_LEN;
-
-	while (true)
+void Player::play(AudioPayload &payload)
+{
+	audio_buffer_t *buffer = take_audio_buffer(this->_pool, true);
+	int16_t *samples = (int16_t *)buffer->buffer->bytes;
+	for (uint i = 0; i < buffer->max_sample_count; i++)
 	{
-		audio_buffer_t *buffer = take_audio_buffer(pool, true);
-		int16_t *samples = (int16_t *)buffer->buffer->bytes;
-		for (uint i = 0; i < buffer->max_sample_count; i++)
-		{
-			samples[i] = (255 * sine_wave_table[pos]) >> 8u;
-			pos++;
-			if (pos >= pos_max)
-			{
-				pos = 0;
-			}
-		}
-		buffer->sample_count = buffer->max_sample_count;
-		give_audio_buffer(pool, buffer);
+		samples[i] = (int16_t)payload.bytes[i] * 256 - 32768;
 	}
+	buffer->sample_count = buffer->max_sample_count;
+	give_audio_buffer(this->_pool, buffer);
 }

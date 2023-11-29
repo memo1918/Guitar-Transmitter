@@ -18,6 +18,8 @@ target_compile_definitions(
 	receiver
 	PRIVATE
 	PICO_AUDIO_I2S_MONO_INPUT=1
+	PICO_AUDIO_I2S_MONO_OUTPUT=1	
+	PICO_AUDIO_BUFFERS_PER_CHANNEL=10
 )
 
 pico_add_extra_outputs(receiver)
