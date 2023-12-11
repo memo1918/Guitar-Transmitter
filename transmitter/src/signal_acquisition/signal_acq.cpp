@@ -1,24 +1,30 @@
 #include "signal_acq.h"
 
+#define TRANSMIT_LED_PIN 20
+
 static uint8_t dma_channel;
 
-#define CAPTURE_BUFFER_SIZE 32
+#define CAPTURE_BUFFER_SIZE 31
 static uint8_t capture_buffer[CAPTURE_BUFFER_SIZE];
 
 static queue_t *queue;
 
 void dma_handler()
 {
+    gpio_put(TRANSMIT_LED_PIN, true);
+
     // Clear the interrupt request.
     dma_hw->ints0 = 1u << dma_channel;
 
     bool success = queue_try_add(queue, &capture_buffer);
     if (!success)
     {
-        printf("[ ERROR ] the dma could not add bytes to the queue, be sure to read from the queue.\n");
+        // printf("[ ERROR ] the dma could not add bytes to the queue, be sure to read from the queue.\n");
     }
 
     dma_channel_set_write_addr(dma_channel, capture_buffer, true);
+
+    gpio_put(TRANSMIT_LED_PIN, false);
 }
 
 /**
@@ -34,6 +40,9 @@ void dma_handler()
  */
 void sig_acq_init(queue_t *q, float frequency)
 {
+    gpio_init(TRANSMIT_LED_PIN);
+    gpio_set_dir(TRANSMIT_LED_PIN, GPIO_OUT);
+
     queue = q;
 
     printf("Initializing the ADC ...\n");

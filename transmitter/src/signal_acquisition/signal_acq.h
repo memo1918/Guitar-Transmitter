@@ -1,7 +1,7 @@
 #ifndef SIGNAL_ACQUISITION_H
 #define SIGNAL_ACQUISITION_H
 
-#define SIGNAL_ACQUISITON_CLOCKSPEED 48'000'000 // 48 MHz
+#define SIGNAL_ACQUISITON_CLOCKSPEED 500'000 // 48'000'000  // 48 MHz
 
 #include <stdio.h>
 #include <hardware/adc.h>

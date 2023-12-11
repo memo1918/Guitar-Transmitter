@@ -8,15 +8,19 @@
 #include <stdio.h>
 #include <pico/stdlib.h>
 #include <pico/util/queue.h>
+#include <pico/multicore.h>
+#include <pico/util/queue.h>
 #include <AudioPayload.h>
 #include <RF24.h>
 #include "receiver/Receiver.h"
 #include "player/Player.h"
 
-RF24 radio(CE_PIN, CSN_PIN, 1000000);
+RF24 radio(CE_PIN, CSN_PIN, 10'000'000);
 SPI spi;
-Receiver receiver(radio, sizeof(AudioPayload), RECEIVE_LED_PIN);
-Player player;
+Receiver receiver(radio, RECEIVE_LED_PIN);
+queue_t queue;
+Player player(queue);
+int bytesInBuffer = 0;
 
 void rf24Setup()
 {
@@ -24,6 +28,7 @@ void rf24Setup()
 	radio.setPayloadSize(receiver.getPayloadSize());
 	radio.setDataRate(RF24_2MBPS);
 	radio.setAutoAck(false);
+	radio.setCRCLength(RF24_CRC_8);
 
 	uint64_t address = 0x314e6f646520;
 	radio.openWritingPipe(address); // always uses pipe 0
@@ -35,10 +40,17 @@ void rf24Setup()
 	printf("[ INFO ] nrf25l01 setup completed\n");
 }
 
+void onPayloadAvailable(uint gpio, uint32_t events)
+{
+	receiver.setDataAvailable();
+}
+
 int main()
 {
 	stdio_init_all();
+	queue_init(&queue, sizeof(uint8_t), 24000);
 
+	gpio_set_irq_enabled_with_callback(IRQ_PIN, GPIO_IRQ_EDGE_FALL, true, onPayloadAvailable);
 	printf("[ BOOT ] Guitar-Transmitter - Receiver");
 
 	player.begin();
@@ -55,10 +67,50 @@ int main()
 	}
 	rf24Setup();
 
+	AudioPayload payload;
+	uint8_t lastPayloadId = 0;
+	bool play = false;
 	while (true)
 	{
-		AudioPayload payload;
-		receiver.read(payload);
-		player.play(payload);
+		if (receiver.isDataAvailable())
+		{
+			bool success = receiver.read(&payload);
+			if (!success)
+			{
+				printf("[ ERROR ] Receiver: Unable to read payload\n");
+				continue;
+			}
+			if (payload.id == lastPayloadId)
+			{
+				continue;
+			}
+			gpio_put(RECEIVE_LED_PIN, true);
+
+			lastPayloadId = payload.id;
+
+			for (uint i = 0; i < sizeof(AudioPayload::bytes); i++)
+			{
+				bool success = queue_try_add(&queue, &payload.bytes[i]);
+				if (!success)
+				{
+					printf("[ WARNING ] Receiver: Audio overflow occoured \n");
+					break;
+				}
+				bytesInBuffer++;
+			}
+			if (bytesInBuffer > 10000)
+			{
+				play = true;
+			}
+
+			// player.play(payload);
+			gpio_put(RECEIVE_LED_PIN, false);
+		}
+
+		if (play)
+		{
+			player.run();
+			bytesInBuffer -= 256;
+		}
 	}
 }

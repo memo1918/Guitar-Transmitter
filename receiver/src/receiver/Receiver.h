@@ -11,13 +11,17 @@ private:
 	RF24 &_radio;
 	uint8_t _size;
 	uint8_t _led;
+	bool _isDataAvailable;
 
 public:
-	Receiver(RF24 &radio, uint8_t size, uint8_t led);
+	Receiver(RF24 &radio, uint8_t led);
 	~Receiver();
 
-	void read(AudioPayload &payload);
+	bool read(AudioPayload *data);
 	uint8_t getPayloadSize();
+
+	void setDataAvailable();
+	bool isDataAvailable();
 };
 
 #endif // __RECEIVER_H__

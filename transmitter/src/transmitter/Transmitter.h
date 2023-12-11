@@ -10,10 +10,10 @@ private:
 	queue_t &_queue;
 	RF24 &_radio;
 	uint8_t _size;
-	uint8_t _led;
+	uint8_t _payloadId;
 
 public:
-	Transmitter(queue_t &queue, RF24 &radio, uint8_t size, uint8_t led);
+	Transmitter(queue_t &queue, RF24 &radio, uint8_t size);
 	~Transmitter();
 
 	void readAndSend();

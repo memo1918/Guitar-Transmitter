@@ -1,9 +1,8 @@
 #include "transmitter.h"
+#include "AudioPayload.h"
 
-Transmitter::Transmitter(queue_t &queue, RF24 &radio, uint8_t size, uint8_t led) : _queue(queue), _radio(radio), _size(size), _led(led)
+Transmitter::Transmitter(queue_t &queue, RF24 &radio, uint8_t size) : _queue(queue), _radio(radio), _size(size), _payloadId(0)
 {
-	gpio_init(this->_led);
-	gpio_set_dir(this->_led, GPIO_OUT);
 }
 
 Transmitter::~Transmitter()
@@ -17,19 +16,20 @@ Transmitter::~Transmitter()
  */
 void Transmitter::readAndSend()
 {
-	gpio_put(this->_led, true);
-	uint8_t payload[this->getPayloadSize()];
-	bool success = queue_try_remove(&this->_queue, &payload);
+	uint8_t payload[sizeof(AudioPayload)];
+	bool success = queue_try_remove(&this->_queue, &payload[sizeof(AudioPayload::id)]);
 	if (!success)
 	{
 		return;
 	}
-	// ignore return type (success), cause it will be always true, because auto-ack is disabled
-	this->_radio.writeFast(payload, this->getPayloadSize());
-	gpio_put(this->_led, false);
+	payload[0] = this->_payloadId;
+	this->_payloadId++;
+
+	// this->_radio.write(payload, sizeof(AudioPayload));
+	this->_radio.writeFast(payload, sizeof(AudioPayload));
 }
 
 uint8_t Transmitter::getPayloadSize()
 {
-	return this->_size;
+	return sizeof(AudioPayload);
 }

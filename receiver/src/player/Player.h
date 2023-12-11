@@ -4,22 +4,28 @@
 #include <stdio.h>
 #include <pico/stdlib.h>
 #include <pico/audio_i2s.h>
+#include <pico/util/queue.h>
 #include <hardware/clocks.h>
 #include <hardware/structs/clocks.h>
 #include <pico/binary_info.h>
 #include <AudioPayload.h>
+#include <hardware/pio.h>
 
 class Player
 {
 private:
 	bool _isSetupComplete = false;
 	audio_buffer_pool_t *_pool;
+	uint8_t _lastPacketId = 0;
+	audio_buffer_t *_currentBuffer = nullptr;
+	queue_t &_queue;
 
 public:
-	Player();
+	Player(queue_t &queue);
 	~Player();
 	void begin();
-	void play(AudioPayload &payload);
+	void run();
+	// void play(AudioPayload &payload);
 };
 
 #endif // __PLAYER_H__

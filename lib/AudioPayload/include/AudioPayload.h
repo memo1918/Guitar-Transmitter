@@ -5,7 +5,8 @@
 
 struct _AudioPayload
 {
-	uint8_t bytes[32];
+	uint8_t id;
+	uint8_t bytes[31];
 };
 
 typedef struct _AudioPayload AudioPayload;
