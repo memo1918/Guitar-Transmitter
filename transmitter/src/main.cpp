@@ -24,10 +24,12 @@ Transmitter transmitter(queue, radio, sizeof(AudioPayload::bytes));
 void rf24Setup()
 {
 	radio.setPALevel(RF24_PA_HIGH);
-	radio.setPayloadSize(transmitter.getPayloadSize());
+	//radio.setPayloadSize(transmitter.getPayloadSize());
+	radio.setPayloadSize(16);
 	radio.setDataRate(RF24_2MBPS);
 	radio.setAutoAck(false);
 	radio.setCRCLength(RF24_CRC_8);
+	
 
 	uint64_t address = 0x314e6f646520;
 	// set the TX address of the RX node into the TX pipe
@@ -45,23 +47,27 @@ int main()
 	stdio_init_all();
 	queue_init(&queue, sizeof(AudioPayload::bytes), 1024);
 
+	gpio_init(20);
+    gpio_set_dir(20, GPIO_OUT);
+
 	printf("Guitar-Transmitter - Transmitter");
 
 	spi.begin(spi0, 18, 19, 16);
 	if (!radio.begin(&spi))
 	{
-		printf("[ ERROR ] the nrf24l01 is not responding\n");
+		// printf("[ ERROR ] the nrf24l01 is not responding\n");
 		while (true)
 		{
-			printf("[ ERROR ] the nrf24l01 was not initaziled successfully ans will not tried again\n");
+			// printf("[ ERROR ] the nrf24l01 was not initaziled successfully ans will not tried again\n");
 			sleep_ms(500);
 		}
 	}
 	rf24Setup();
 
-	sig_acq_init(&queue, AUDIO_FREQUENCY);
+	sig_acq_init(&queue, AUDIO_FREQUENCY, &radio);
 	while (true)
 	{
-		transmitter.readAndSend();
+		tight_loop_contents();
+		//transmitter.readAndSend();
 	}
 }

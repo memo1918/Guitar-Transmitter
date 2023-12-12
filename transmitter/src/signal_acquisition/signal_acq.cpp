@@ -4,27 +4,31 @@
 
 static uint8_t dma_channel;
 
-#define CAPTURE_BUFFER_SIZE 31
-static uint8_t capture_buffer[CAPTURE_BUFFER_SIZE];
-
+#define CAPTURE_BUFFER_SIZE 16
+static uint8_t capture_buffer_a[CAPTURE_BUFFER_SIZE];
+static uint8_t capture_buffer_b[CAPTURE_BUFFER_SIZE];
 static queue_t *queue;
+static RF24 *radio;
+volatile uint8_t id = 0;
 
 void dma_handler()
 {
-    gpio_put(TRANSMIT_LED_PIN, true);
+    // gpio_put(20, true);
+    //  Clear the interrupt request.
+    // dma_hw->ints0 = 1u << dma_channel;
 
-    // Clear the interrupt request.
-    dma_hw->ints0 = 1u << dma_channel;
+    //// bool success = queue_try_add(queue, &capture_buffer); // before 120ns after 600ns with buffer size 1
+    // bool success = queue_try_add(queue, &capture_buffer); // before 120ns after 600ns with buffer size 31
+    // capture_buffer[0] = id;
+    // id++;
+    // radio->startFastWrite(capture_buffer, 32, 0);
+    //  if (!success)
+    //  {
+    //      // printf("[ ERROR ] the dma could not add bytes to the queue, be sure to read from the queue.\n");
+    //  }
 
-    bool success = queue_try_add(queue, &capture_buffer);
-    if (!success)
-    {
-        // printf("[ ERROR ] the dma could not add bytes to the queue, be sure to read from the queue.\n");
-    }
-
-    dma_channel_set_write_addr(dma_channel, capture_buffer, true);
-
-    gpio_put(TRANSMIT_LED_PIN, false);
+    // dma_channel_set_write_addr(dma_channel, capture_buffer+1, true);
+    // gpio_put(20, false);
 }
 
 /**
@@ -38,19 +42,18 @@ void dma_handler()
  * @param frequency The frequency at wich the adc reads. The highest possible
  * frequency is 500.000Hz
  */
-void sig_acq_init(queue_t *q, float frequency)
+void sig_acq_init(queue_t *q, float frequency, RF24 *r)
 {
-    gpio_init(TRANSMIT_LED_PIN);
-    gpio_set_dir(TRANSMIT_LED_PIN, GPIO_OUT);
-
     queue = q;
+    radio = r;
 
     printf("Initializing the ADC ...\n");
 
-    adc_init();                                               // turn the adc on and wait for ready state
-    adc_set_clkdiv(SIGNAL_ACQUISITON_CLOCKSPEED / frequency); // select fastes divider for sample rate
-    adc_gpio_init(26);                                        // enable the gpio 26 pin for adc voltage measurement
-    adc_select_input(0);                                      // select ADC0
+    adc_init();
+    adc_set_clkdiv(2400); // turn the adc on and wait for ready state
+    // adc_set_clkdiv(SIGNAL_ACQUISITON_CLOCKSPEED / frequency); // select fastes divider for sample rate
+    adc_gpio_init(26);   // enable the gpio 26 pin for adc voltage measurement
+    adc_select_input(0); // select ADC0
 
     adc_fifo_setup( // enable the fifo setup for working with the dma
         true,       // enable the fifo setup
@@ -72,17 +75,17 @@ void sig_acq_init(queue_t *q, float frequency)
     dma_channel_configure(
         dma_channel,
         &cfg,
-        capture_buffer,
+        capture_buffer_a,
         &adc_hw->fifo,
         CAPTURE_BUFFER_SIZE,
         false);
 
     // Tell the DMA to raise IRQ line 0 when the channel finishes a block
-    dma_channel_set_irq0_enabled(dma_channel, true);
+    // dma_channel_set_irq0_enabled(dma_channel, true);
 
     // Configure the processor to run dma_handler() when DMA IRQ 0 is asserted
-    irq_set_exclusive_handler(DMA_IRQ_0, dma_handler);
-    irq_set_enabled(DMA_IRQ_0, true);
+    //  irq_set_exclusive_handler(DMA_IRQ_0, dma_handler);
+    // irq_set_enabled(DMA_IRQ_0, true);
 
     // first DMA and then ADC
     dma_channel_start(dma_channel);
@@ -91,5 +94,26 @@ void sig_acq_init(queue_t *q, float frequency)
     // Manually call the handler once, to trigger the first transfer
     sleep_ms(10);
 
-    dma_handler();
+    dma_channel_wait_for_finish_blocking(dma_channel);
+
+    while (true)
+    {
+        gpio_put(20, true);
+
+        dma_channel_set_write_addr(dma_channel, capture_buffer_b, true);
+        capture_buffer_a[0] = id++;
+        //  radio->flush_tx();
+        radio->startFastWrite(capture_buffer_a, CAPTURE_BUFFER_SIZE, 0);
+        dma_channel_wait_for_finish_blocking(dma_channel);
+
+        dma_channel_set_write_addr(dma_channel, capture_buffer_a, true);
+        capture_buffer_b[0] = id++;
+        // radio->flush_tx();
+        radio->startFastWrite(capture_buffer_b, CAPTURE_BUFFER_SIZE, 0);
+
+        dma_channel_wait_for_finish_blocking(dma_channel);
+        gpio_put(20, false);
+    }
+
+    // dma_handler();
 }

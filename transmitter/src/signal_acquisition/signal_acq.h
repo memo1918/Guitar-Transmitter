@@ -7,7 +7,8 @@
 #include <hardware/adc.h>
 #include <hardware/dma.h>
 #include <pico/util/queue.h>
+#include <RF24.h>
 
-void sig_acq_init(queue_t *q, float frequency);
+void sig_acq_init(queue_t *q, float frequency, RF24 *r);
 
 #endif
