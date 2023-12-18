@@ -101,13 +101,11 @@ void sig_acq_init(queue_t *q, float frequency, RF24 *r)
         gpio_put(20, true);
 
         dma_channel_set_write_addr(dma_channel, capture_buffer_b, true);
-        capture_buffer_a[0] = id++;
         //  radio->flush_tx();
         radio->startFastWrite(capture_buffer_a, CAPTURE_BUFFER_SIZE, 0);
         dma_channel_wait_for_finish_blocking(dma_channel);
 
         dma_channel_set_write_addr(dma_channel, capture_buffer_a, true);
-        capture_buffer_b[0] = id++;
         // radio->flush_tx();
         radio->startFastWrite(capture_buffer_b, CAPTURE_BUFFER_SIZE, 0);
 

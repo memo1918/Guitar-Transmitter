@@ -10,6 +10,7 @@
 #include <pico/binary_info.h>
 #include <AudioPayload.h>
 #include <hardware/pio.h>
+#include <hardware/dma.h>
 
 class Player
 {
@@ -18,14 +19,13 @@ private:
 	audio_buffer_pool_t *_pool;
 	uint8_t _lastPacketId = 0;
 	audio_buffer_t *_currentBuffer = nullptr;
-	queue_t &_queue;
 
 public:
-	Player(queue_t &queue);
+	Player();
 	~Player();
 	void begin();
-	void run();
-	// void play(AudioPayload &payload);
+	// void run();
+	void play(uint8_t *payload);
 };
 
 #endif // __PLAYER_H__

@@ -14,26 +14,32 @@
 #include <RF24.h>
 #include "receiver/Receiver.h"
 #include "player/Player.h"
+#include <unistd.h>
+#include <math.h>
+
+#define PAYLOAD_SIZE 16
+#define BUFFER_SIZE 256
 
 RF24 radio(CE_PIN, CSN_PIN, 10'000'000);
 SPI spi;
-Receiver receiver(radio, RECEIVE_LED_PIN);
-queue_t queue;
-Player player(queue);
+Receiver receiver(radio, PAYLOAD_SIZE);
+Player player;
 int bytesInBuffer = 0;
 
 void rf24Setup()
 {
-	radio.setPALevel(RF24_PA_HIGH);
-	radio.setPayloadSize(receiver.getPayloadSize());
+	radio.setPALevel(RF24_PA_MAX);
+	radio.setPayloadSize(PAYLOAD_SIZE);
 	radio.setDataRate(RF24_2MBPS);
 	radio.setAutoAck(false);
-	radio.setCRCLength(RF24_CRC_8);
+	radio.disableCRC();
+	// radio.setCRCLength(RF24_CRC_8);
+	radio.maskIRQ(true, true, false);
 
 	uint64_t address = 0x314e6f646520;
-	radio.openWritingPipe(address); // always uses pipe 0
-	// set the RX address of the TX node into a RX pipe
-	radio.openReadingPipe(1, address); // using pipe 1
+	// radio.openWritingPipe(address); // always uses pipe 0
+	//  set the RX address of the TX node into a RX pipe
+	radio.openReadingPipe(0, address); // using pipe 1
 	radio.startListening();
 
 	radio.printPrettyDetails();
@@ -45,13 +51,52 @@ void onPayloadAvailable(uint gpio, uint32_t events)
 	receiver.setDataAvailable();
 }
 
+uint payloadnum = 0;
+uint8_t payload[256];
+repeating_timer_t timer;
+
+#define SINE_WAVE_TABLE_LEN 48
+uint32_t pos = 0;
+uint32_t pos_max = SINE_WAVE_TABLE_LEN;
+uint vol = 255;
+static int16_t sine_wave_table[SINE_WAVE_TABLE_LEN];
+int tracePos = 0;
+
+bool onNextFrameExpected(repeating_timer_t *rt)
+{
+	payloadnum += PAYLOAD_SIZE;
+	if (payloadnum >= BUFFER_SIZE)
+	{
+		/*tracePos++;
+		if (tracePos > 8)
+		{
+			for (int i = 0; i < 1024; i++)
+			{
+				printf("%d,", payload[i]);
+			}
+			printf("\n");
+		}*/
+		player.play(payload);
+		memset(payload, 127, BUFFER_SIZE);
+		payloadnum = 0;
+	}
+	return true;
+}
+
 int main()
 {
 	stdio_init_all();
-	queue_init(&queue, sizeof(uint8_t), 24000);
 
-	gpio_set_irq_enabled_with_callback(IRQ_PIN, GPIO_IRQ_EDGE_FALL, true, onPayloadAvailable);
+	gpio_init(20);
+	gpio_set_dir(20, GPIO_OUT);
+
+	// gpio_set_irq_enabled_with_callback(IRQ_PIN, GPIO_IRQ_EDGE_FALL, true, onPayloadAvailable);
 	printf("[ BOOT ] Guitar-Transmitter - Receiver");
+
+	for (int i = 0; i < SINE_WAVE_TABLE_LEN; i++)
+	{
+		sine_wave_table[i] = 128 * cosf(i * 2 * (float)(M_PI / SINE_WAVE_TABLE_LEN)); // 45 bytes ber period
+	}
 
 	player.begin();
 
@@ -67,50 +112,33 @@ int main()
 	}
 	rf24Setup();
 
-	AudioPayload payload;
-	uint8_t lastPayloadId = 0;
-	bool play = false;
+	memset(payload, 127, BUFFER_SIZE);
+	if (!add_repeating_timer_us(-1'000'000 / 1250, onNextFrameExpected, NULL, &timer))
+	{
+		printf("Failed to add timer\n");
+		return 1;
+	}
+
 	while (true)
 	{
-		if (receiver.isDataAvailable())
+		// if (receiver.isDataAvailable())
+		//{
+		if (radio.available())
 		{
-			bool success = receiver.read(&payload);
-			if (!success)
+			uint32_t state = save_and_disable_interrupts();
+			radio.read(&payload[payloadnum], PAYLOAD_SIZE);
+			// memset(&payload[payloadnum], 255, 16);
+			//  memcpy(&payload[payloadnum], &sine_wave_table[pos], 16);
+			/*pos++;
+			if (pos >= pos_max)
 			{
-				printf("[ ERROR ] Receiver: Unable to read payload\n");
-				continue;
-			}
-			if (payload.id == lastPayloadId)
-			{
-				continue;
-			}
-			gpio_put(RECEIVE_LED_PIN, true);
-
-			lastPayloadId = payload.id;
-
-			for (uint i = 0; i < sizeof(AudioPayload::bytes); i++)
-			{
-				bool success = queue_try_add(&queue, &payload.bytes[i]);
-				if (!success)
-				{
-					printf("[ WARNING ] Receiver: Audio overflow occoured \n");
-					break;
-				}
-				bytesInBuffer++;
-			}
-			if (bytesInBuffer > 10000)
-			{
-				play = true;
-			}
-
-			// player.play(payload);
-			gpio_put(RECEIVE_LED_PIN, false);
+				pos = 0;
+			}*/
+			restore_interrupts(state);
 		}
+		// receiver.read(&payload[payloadnum]);
 
-		if (play)
-		{
-			player.run();
-			bytesInBuffer -= 256;
-		}
+		// memcpy(&payload[payloadnum], sine_wave_table, 16);
+		//}
 	}
 }

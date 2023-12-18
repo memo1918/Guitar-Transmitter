@@ -1,9 +1,7 @@
 #include "Receiver.h"
 
-Receiver::Receiver(RF24 &radio, uint8_t led) : _radio(radio), _led(led)
+Receiver::Receiver(RF24 &radio, uint8_t size) : _radio(radio), _size(size)
 {
-	gpio_init(this->_led);
-	gpio_set_dir(this->_led, GPIO_OUT);
 }
 
 Receiver::~Receiver()
@@ -16,7 +14,7 @@ Receiver::~Receiver()
  * placed into the queue. If the queue is full, the payload will be thrown away
  * silently.
  */
-bool Receiver::read(AudioPayload *data)
+bool Receiver::read(uint8_t *data)
 {
 	if (this->_radio.available()) // waits until payload is available, is there a payload? get the pipe number that recieved it
 	{
@@ -29,7 +27,7 @@ bool Receiver::read(AudioPayload *data)
 
 uint8_t Receiver::getPayloadSize()
 {
-	return sizeof(AudioPayload);
+	return this->_size;
 }
 
 bool Receiver::isDataAvailable()
