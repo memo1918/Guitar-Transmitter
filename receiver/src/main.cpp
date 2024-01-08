@@ -1,8 +1,6 @@
-#define CE_PIN 7		  // chip enable pin for the RF24
-#define CSN_PIN 8		  // chip select pin for the RF24
-#define IRQ_PIN 6		  // interrupt pin from the RF24
-#define AUDIO_DIN_PIN 21  // data in pin for the i2s audio digtal analog converter
-#define AUDIO_BCLK_PIN 22 // bit clock pin for the i2s audio digtal analog converter
+#define CE_PIN 7  // chip enable pin for the RF24
+#define CSN_PIN 8 // chip select pin for the RF24
+#define IRQ_PIN 6 // interrupt pin from the RF24
 
 #define AUDIOFRAME_SIZE 16
 #define AUDIOBUFFER_SIZE 256
