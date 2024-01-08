@@ -3,13 +3,13 @@ add_executable(
 	src/main.cpp
 	src/signal_acquisition/signal_acq.cpp
 )
+
 target_link_libraries(
 	transmitter
 	pico_stdlib
 	hardware_adc
 	hardware_dma
 	hardware_spi
-	hardware_sync
 	hardware_gpio
 	RF24
 )
