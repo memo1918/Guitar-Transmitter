@@ -2,19 +2,16 @@ add_executable(
 	transmitter
 	src/main.cpp
 	src/signal_acquisition/signal_acq.cpp
-	src/transmitter/transmitter.cpp
 )
+
 target_link_libraries(
 	transmitter
 	pico_stdlib
 	hardware_adc
 	hardware_dma
 	hardware_spi
-	hardware_sync
 	hardware_gpio
-	hardware_sync
 	RF24
-	AudioPayload
 )
 
 pico_add_extra_outputs(transmitter)

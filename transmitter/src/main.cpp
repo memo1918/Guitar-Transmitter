@@ -5,8 +5,6 @@
 #include <pico/util/queue.h>
 #include <hardware/sync.h>
 #include <pico/lock_core.h>
-#include <AudioPayload.h>
-#include "transmitter/Transmitter.h"
 
 #include "signal_acquisition/signal_acq.h"
 
