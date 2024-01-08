@@ -72,7 +72,7 @@ bool onNextFrameExpected(repeating_timer_t *rt)
 	return true;
 }
 
-void main()
+int main()
 {
 	stdio_init_all();
 	printf("[ BOOT ] Guitar-Transmitter - Receiver");

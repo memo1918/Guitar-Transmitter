@@ -8,7 +8,6 @@ target_link_libraries(receiver
 	pico_audio_i2s
 	hardware_gpio
 	hardware_spi
-	hardware_sync
 	RF24
 )
 
