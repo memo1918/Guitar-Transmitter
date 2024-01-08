@@ -14,6 +14,8 @@ target_link_libraries(receiver
 target_compile_definitions(
 	receiver
 	PRIVATE
+	PICO_AUDIO_I2S_MONO_INPUT=1
+
 )
 
 pico_add_extra_outputs(receiver)
