@@ -1,84 +1,71 @@
-#define CE_PIN 7
-#define CSN_PIN 8
-#define IRQ_PIN 6
-#define RECEIVE_LED_PIN 20
-#define AUDIO_DIN_PIN 21
-#define AUDIO_BCLK_PIN 22
+#define CE_PIN 7  // chip enable pin for the RF24
+#define CSN_PIN 8 // chip select pin for the RF24
+#define IRQ_PIN 6 // interrupt pin from the RF24
+
+#define AUDIOFRAME_SIZE 16
+#define AUDIOBUFFER_SIZE 256
+#define RF24_SPI_SPEED 10'000'000
 
 #include <stdio.h>
 #include <pico/stdlib.h>
-#include <pico/util/queue.h>
-#include <pico/multicore.h>
-#include <pico/util/queue.h>
-#include <AudioPayload.h>
 #include <RF24.h>
-#include "receiver/Receiver.h"
+
 #include "player/Player.h"
-#include <unistd.h>
-#include <math.h>
 
-#define PAYLOAD_SIZE 16
-#define BUFFER_SIZE 256
-
-RF24 radio(CE_PIN, CSN_PIN, 10'000'000);
+RF24 radio(CE_PIN, CSN_PIN, RF24_SPI_SPEED);
 SPI spi;
-Receiver receiver(radio, PAYLOAD_SIZE);
-Player player;
-int bytesInBuffer = 0;
+Player player(AUDIOBUFFER_SIZE);
 
+// The address used on RF24 (TX and RX) must be the same.
+const uint64_t address = 0x314e6f646520;
+
+uint payloadFrameId = 0;
+uint8_t payload[256];
+repeating_timer_t timer;
+
+/**
+ * @brief Setup the RF24 device for audio transmission
+ *
+ * The sender and receiver have to use the same settings. We decided to disable
+ * the CRC check, because it is not needed for audio transmission. It is easier
+ * to filter/compress a corrupted byte than to interpolate a complete frame.
+ * We also disable the auto ack feature, because it takes way to long to try
+ * retransmitt a missing or corrupted frame.
+ */
 void rf24Setup()
 {
 	radio.setPALevel(RF24_PA_MAX);
-	radio.setPayloadSize(PAYLOAD_SIZE);
+	radio.setPayloadSize(AUDIOFRAME_SIZE);
 	radio.setDataRate(RF24_2MBPS);
 	radio.setAutoAck(false);
 	radio.disableCRC();
-	// radio.setCRCLength(RF24_CRC_8);
 	radio.maskIRQ(true, true, false);
 
-	uint64_t address = 0x314e6f646520;
-	// radio.openWritingPipe(address); // always uses pipe 0
-	//  set the RX address of the TX node into a RX pipe
-	radio.openReadingPipe(0, address); // using pipe 1
+	// Open a reading pipe on the given address
+	radio.openReadingPipe(0, address);
 	radio.startListening();
 
 	radio.printPrettyDetails();
 	printf("[ INFO ] nrf25l01 setup completed\n");
 }
 
-void onPayloadAvailable(uint gpio, uint32_t events)
-{
-	receiver.setDataAvailable();
-}
-
-uint payloadnum = 0;
-uint8_t payload[256];
-repeating_timer_t timer;
-
-#define SINE_WAVE_TABLE_LEN 48
-uint32_t pos = 0;
-uint32_t pos_max = SINE_WAVE_TABLE_LEN;
-uint vol = 255;
-static int16_t sine_wave_table[SINE_WAVE_TABLE_LEN];
-int tracePos = 0;
-
+/**
+ * @brief Callback, when the the time for the next frame is reached
+ *
+ * @param rt the repeating timer that called this function
+ * @return true in order  to keep the timer running
+ */
 bool onNextFrameExpected(repeating_timer_t *rt)
 {
-	payloadnum += PAYLOAD_SIZE;
-	if (payloadnum >= BUFFER_SIZE)
+	payloadFrameId += AUDIOFRAME_SIZE;
+	if (payloadFrameId >= AUDIOBUFFER_SIZE)
 	{
-		/*tracePos++;
-		if (tracePos > 8)
-		{
-			for (int i = 0; i < 1024; i++)
-			{
-				printf("%d,", payload[i]);
-			}
-			printf("\n");
-		}*/
+		// play the next buffer if enough frames are received, to fill a buffer
 		player.play(payload);
-		memset(payload, 127, BUFFER_SIZE);
-		payloadnum = 0;
+		// reset the buffer affter playing it, to avoid keeping old frames in case a frame is missing
+		memset(payload, 127, AUDIOBUFFER_SIZE);
+		// fill the buffer from the beginning
+		payloadFrameId = 0;
 	}
 	return true;
 }
@@ -86,59 +73,45 @@ bool onNextFrameExpected(repeating_timer_t *rt)
 int main()
 {
 	stdio_init_all();
-
-	gpio_init(20);
-	gpio_set_dir(20, GPIO_OUT);
-
-	// gpio_set_irq_enabled_with_callback(IRQ_PIN, GPIO_IRQ_EDGE_FALL, true, onPayloadAvailable);
 	printf("[ BOOT ] Guitar-Transmitter - Receiver");
 
-	for (int i = 0; i < SINE_WAVE_TABLE_LEN; i++)
-	{
-		sine_wave_table[i] = 128 * cosf(i * 2 * (float)(M_PI / SINE_WAVE_TABLE_LEN)); // 45 bytes ber period
-	}
-
+	// initalize the modules used to receive and play audio
 	player.begin();
-
 	spi.begin(spi0, 18, 19, 16);
 	if (!radio.begin(&spi))
 	{
+		// in here the program will panic, if the nrf24l01 is not responding.
+		// A possible reason for this is, that the nrf24l01 is not connected correctly.
 		printf("[ ERROR ] the nrf24l01 is not responding\n");
-		while (true)
-		{
-			printf("[ ERROR ] the nrf24l01 was not initaziled successfully ans will not tried again\n");
-			sleep_ms(500);
-		}
+		panic("[ ERROR ] the nrf24l01 was not initaziled successfully");
 	}
 	rf24Setup();
+	// init the buffer with 127, which is the middle of the range of the
+	// int8_t (0 to 255)
+	memset(payload, 127, AUDIOBUFFER_SIZE);
 
-	memset(payload, 127, BUFFER_SIZE);
+	// setup the timer to call onNextFrameExpected every 1/1250 seconds, which
+	// is the time for one audio frame of 16 bytes with a sample rate of 20kHz
+	// 1/1250 = 0.0008 = 800us
 	if (!add_repeating_timer_us(-1'000'000 / 1250, onNextFrameExpected, NULL, &timer))
 	{
-		printf("Failed to add timer\n");
-		return 1;
+		panic("[ ERROR ] Failed to add timer\n");
 	}
 
 	while (true)
 	{
-		// if (receiver.isDataAvailable())
-		//{
+		// check if a new frame was received, by the RF24
 		if (radio.available())
 		{
+			// disable interrupts while reading from the RF24, to avoid start
+			// to playing a frame, while it is still being read
 			uint32_t state = save_and_disable_interrupts();
-			radio.read(&payload[payloadnum], PAYLOAD_SIZE);
-			// memset(&payload[payloadnum], 255, 16);
-			//  memcpy(&payload[payloadnum], &sine_wave_table[pos], 16);
-			/*pos++;
-			if (pos >= pos_max)
-			{
-				pos = 0;
-			}*/
+			// read the frame into the buffer, to the position of the current
+			// payloadFrameId, which is incremented by AUDIOFRAME_SIZE at a
+			// specific interval, to avoid an audio underrun in case of missing
+			// a frame
+			radio.read(&payload[payloadFrameId], AUDIOFRAME_SIZE);
 			restore_interrupts(state);
 		}
-		// receiver.read(&payload[payloadnum]);
-
-		// memcpy(&payload[payloadnum], sine_wave_table, 16);
-		//}
 	}
 }
