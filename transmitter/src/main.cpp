@@ -23,19 +23,18 @@ Transmitter transmitter(queue, radio, sizeof(AudioPayload::bytes));
 
 void rf24Setup()
 {
-	radio.setPALevel(RF24_PA_HIGH);
-	//radio.setPayloadSize(transmitter.getPayloadSize());
+	radio.setPALevel(RF24_PA_MAX);
 	radio.setPayloadSize(16);
 	radio.setDataRate(RF24_2MBPS);
 	radio.setAutoAck(false);
-	radio.setCRCLength(RF24_CRC_8);
-	
+	//radio.setCRCLength(RF24_CRC_8);
+	radio.disableCRC();
 
 	uint64_t address = 0x314e6f646520;
 	// set the TX address of the RX node into the TX pipe
 	radio.openWritingPipe(address); // always uses pipe 0
 	// set the RX address of the TX node into a RX pipe
-	radio.openReadingPipe(1, address); // using pipe 1
+	// radio.openReadingPipe(1, address); // using pipe 1
 	radio.stopListening();			   // Trasmit only
 
 	radio.printPrettyDetails();

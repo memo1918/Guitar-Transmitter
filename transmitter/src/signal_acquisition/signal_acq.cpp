@@ -11,6 +11,8 @@ static queue_t *queue;
 static RF24 *radio;
 volatile uint8_t id = 0;
 
+uint8_t test_buf[CAPTURE_BUFFER_SIZE];
+
 void dma_handler()
 {
     // gpio_put(20, true);
@@ -44,6 +46,8 @@ void dma_handler()
  */
 void sig_acq_init(queue_t *q, float frequency, RF24 *r)
 {
+    memset(test_buf, 127, CAPTURE_BUFFER_SIZE);
+
     queue = q;
     radio = r;
 
@@ -98,21 +102,30 @@ void sig_acq_init(queue_t *q, float frequency, RF24 *r)
 
     while (true)
     {
-        gpio_put(20, true);
 
         dma_channel_set_write_addr(dma_channel, capture_buffer_b, true);
-        capture_buffer_a[0] = id++;
-        //  radio->flush_tx();
-        radio->startFastWrite(capture_buffer_a, CAPTURE_BUFFER_SIZE, 0);
+        // capture_buffer_a[0] = id++;
+
+        gpio_put(20, true);
+        uint32_t int_state = save_and_disable_interrupts();
+        radio->startFastWrite(capture_buffer_a, CAPTURE_BUFFER_SIZE, true);
+        //radio->startFastWrite(test_buf, CAPTURE_BUFFER_SIZE, true);
+        restore_interrupts(int_state);
+        gpio_put(20, false);
+
         dma_channel_wait_for_finish_blocking(dma_channel);
 
         dma_channel_set_write_addr(dma_channel, capture_buffer_a, true);
-        capture_buffer_b[0] = id++;
-        // radio->flush_tx();
-        radio->startFastWrite(capture_buffer_b, CAPTURE_BUFFER_SIZE, 0);
+        // capture_buffer_b[0] = id++;
+
+        gpio_put(20, true);
+        int_state = save_and_disable_interrupts();
+        radio->startFastWrite(capture_buffer_b, CAPTURE_BUFFER_SIZE, true);
+        // radio->startFastWrite(test_buf, CAPTURE_BUFFER_SIZE, true);
+        restore_interrupts(int_state);
+        gpio_put(20, false);
 
         dma_channel_wait_for_finish_blocking(dma_channel);
-        gpio_put(20, false);
     }
 
     // dma_handler();
