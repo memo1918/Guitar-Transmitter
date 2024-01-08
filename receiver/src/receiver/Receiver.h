@@ -10,14 +10,13 @@ class Receiver
 private:
 	RF24 &_radio;
 	uint8_t _size;
-	uint8_t _led;
 	bool _isDataAvailable;
 
 public:
-	Receiver(RF24 &radio, uint8_t led);
+	Receiver(RF24 &radio, uint8_t size);
 	~Receiver();
 
-	bool read(AudioPayload *data);
+	bool read(uint8_t *data);
 	uint8_t getPayloadSize();
 
 	void setDataAvailable();

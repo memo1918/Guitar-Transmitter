@@ -102,9 +102,7 @@ void sig_acq_init(queue_t *q, float frequency, RF24 *r)
 
     while (true)
     {
-
         dma_channel_set_write_addr(dma_channel, capture_buffer_b, true);
-        // capture_buffer_a[0] = id++;
 
         gpio_put(20, true);
         uint32_t int_state = save_and_disable_interrupts();

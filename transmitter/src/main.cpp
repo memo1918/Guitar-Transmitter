@@ -27,7 +27,6 @@ void rf24Setup()
 	radio.setPayloadSize(16);
 	radio.setDataRate(RF24_2MBPS);
 	radio.setAutoAck(false);
-	//radio.setCRCLength(RF24_CRC_8);
 	radio.disableCRC();
 
 	uint64_t address = 0x314e6f646520;
@@ -47,7 +46,7 @@ int main()
 	queue_init(&queue, sizeof(AudioPayload::bytes), 1024);
 
 	gpio_init(20);
-    gpio_set_dir(20, GPIO_OUT);
+	gpio_set_dir(20, GPIO_OUT);
 
 	printf("Guitar-Transmitter - Transmitter");
 
@@ -67,6 +66,6 @@ int main()
 	while (true)
 	{
 		tight_loop_contents();
-		//transmitter.readAndSend();
+		// transmitter.readAndSend();
 	}
 }
