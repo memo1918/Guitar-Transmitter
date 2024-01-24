@@ -1,0 +1,11 @@
+version: "3"
+
+services:
+  docs:
+    image: pandoc/extra:latest-ubuntu
+    container_name: guitar-docs
+    working_dir: /srv
+    entrypoint:
+      - ./build.sh
+    volumes:
+      - ./documentation:/srv

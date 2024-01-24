@@ -1,0 +1,9 @@
+# Evaluation of the Result
+
+We have managed to keep the time-critical limit of 5 milliseconds. The system operates satisfactorily in real-time, and there is no discrepancy between the guitar played and the amplifier. Every guitar string played is audible, even if several strings were played at the same time. When playing on the higher strings (G-H-E) or in higher frets, the volume of the signal is diminished (barely audible). Since no pre-amplification has been implemented, this remains an open issue that needs to be addressed. The signal from the passive pickup circuit of the guitar is too weak to be accurately measured by the ADC. The same applies to playing harmonics. The frequencies are easily recordable with our sample rate of 20,000 Hz, but the signal strength is too weak due to the low amplitude of the string vibration to be measured effectively by our system. In our system, short cracking noises arise from an unknown source. This issue has not yet been resolved, and we do not know the exact cause. Potential sources could be:
+
+- ADC measurement switch between DMA and Transceiver Buffer
+- Packet loss – playing too many corrupted packets
+- Reception of the payload and filling of the audio buffer are not timely synchronized
+
+Additionally, a periodic noise occurs exactly every 2 seconds. After a prolonged investigation, we have not identified the source of this problem. We cannot explain where this noise originates. The power consumption of the system in the prototype can be effectively managed with a battery. We achieve a power consumption of approximately 120 mA for the transmitter and about 70 mA for the receiver. The connection of the system to a battery system has not been implemented within the specified time frame. The complete prototype is situated on a breadboard, and no PCB has been designed.
