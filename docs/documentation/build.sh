@@ -2,7 +2,7 @@
 
 echo "Building docs..."
 
-pandoc --pdf-engine xelatex -s -o Guitar-Transceiver.pdf \
+pandoc --pdf-engine xelatex -s -o Guitar-Transceiver-Documentation.pdf \
 	01_Cover.md \
 	02_Abstract.md \
 	03_Introduction.md \
