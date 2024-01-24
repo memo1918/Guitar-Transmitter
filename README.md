@@ -1,5 +1,9 @@
 # Guitar Transmitter
 
+## tl;dr
+
+Documentation is [here](./docs/Guitar-Transceiver-Documentation.pdf)
+
 Team-Members: Kai Mayer, Kevin Reifschneider, Maximilian Knobloch, Mehmet Sahin Uces
 
 This project contains the source code and documentation for the cableless guitar transmitter. You can find a short description of what we are building in the following block:
