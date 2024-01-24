@@ -1,33 +1,56 @@
 #include "signal_acq.h"
+#include "Yin.h"
+
+
 
 static uint8_t dma_channel;
 
-#define CAPTURE_BUFFER_SIZE 128
+#define CAPTURE_BUFFER_SIZE 1024
 static uint8_t capture_buffer[CAPTURE_BUFFER_SIZE];
+static int16_t yin_buff[CAPTURE_BUFFER_SIZE];
 
 static queue_t *queue;
+
+Yin yin;
+	
+
+void yin_al(){
+	float pitch;
+
+    for (int i; i<CAPTURE_BUFFER_SIZE;i++){
+        yin_buff[i]= static_cast<int16_t>(capture_buffer[i]);
+        // printf("%d, \n",yin_buff[i]);
+    }
+
+	pitch = Yin_getPitch(&yin, yin_buff);	
+    
+
+	printf("Pitch is found to be %f \n",pitch);
+}
 
 void dma_handler()
 {
     // Clear the interrupt request.
     dma_hw->ints0 = 1u << dma_channel;
-
-    for (int i = 0; i < CAPTURE_BUFFER_SIZE; i++)
-    {
-        queue_try_add(queue, &capture_buffer[i]);
-    }
+    
+    yin_al();
 
     dma_channel_set_write_addr(dma_channel, capture_buffer, true);
 }
 
+
+
 void sig_acq_init(queue_t *q)
 {
     queue = q;
+    Yin_init(&yin, CAPTURE_BUFFER_SIZE, 0.9);
+    
 
     printf("Initializing the ADC ...\n");
 
     adc_init();          // turn the adc on and wait for ready state
-    adc_set_clkdiv(0);   // select fastes divider for sample rate
+    adc_set_clkdiv(48000000/(44100));   // select fastes divider for sample rate
+    
     adc_gpio_init(26);   // enable the gpio 26 pin for adc voltage measurement
     adc_select_input(0); // select ADC0
 
